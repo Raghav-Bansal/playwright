@@ -32,6 +32,15 @@ import { ExtensionContextFactory } from './extension/extensionContextFactory';
 import type { Command } from 'playwright-core/lib/utilsBundle';
 import type { MCPProvider } from './sdk/proxyBackend';
 
+import { PlaybookStore } from 'playwright-core/src/common/playbookStore';
+import { PlaybookRunner } from 'playwright-core/src/common/playbookRunner';
+import { PlaybookFallback } from 'playwright-core/src/common/playbookFallback';
+
+// The Playbook objects are initialized globally for MCC Agent/Runner use.
+const playbookStore = new PlaybookStore();
+const playbookRunner = new PlaybookRunner(playbookStore);
+const playbookFallback = new PlaybookFallback(playbookStore);
+
 export function decorateCommand(command: Command, version: string) {
   command
       .option('--allowed-hosts <hosts...>', 'comma-separated list of hosts this server is allowed to serve from. Defaults to the host the server is bound to. Pass \'*\' to disable the host check.', commaSeparatedList)

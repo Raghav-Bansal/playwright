@@ -1,0 +1,11 @@
+# Playbook YAML: Persistent Workflow/Selector Mapping for Playwright MCP
+
+version: "1.0.0"
+selectors: {}
+patterns: {}
+meta:
+  created: "2025-10-28T20:14:53+05:30"
+  description: |
+    This file is the persistent store for all playbook selectors and workflow patterns.
+    As workflows are trained/recorded, this will be populated with semantic selectors and step sequences.
+    See packages/playwright-core/src/common/playbook.d.ts for full schema.

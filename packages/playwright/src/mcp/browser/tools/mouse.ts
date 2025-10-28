@@ -58,6 +58,22 @@ const mouseClick = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
+    // Playbook workflow-driven: Example for mouse_click (real replay if playbook present)
+    if ((global as any).playbookRunner) {
+      const runner = (global as any).playbookRunner;
+      const stepsResult = runner.getSteps('mouse_click');
+      if (stepsResult.resolved && stepsResult.steps.length > 0) {
+        for (const step of stepsResult.steps) {
+          if (step.type === 'click' && typeof step.selector === 'string') {
+            response.addCode(`[Playbook] Click: ${step.selector}`);
+            await tab.page.click(step.selector);
+          }
+        }
+        response.setIncludeSnapshot();
+        return;
+      }
+    }
+
     response.setIncludeSnapshot();
 
     response.addCode(`// Click mouse at coordinates (${params.x}, ${params.y})`);

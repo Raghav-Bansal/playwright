@@ -37,6 +37,21 @@ const fillForm = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
+    // Playbook workflow-driven: Example for fill_form
+    if ((global as any).playbookRunner) {
+      const runner = (global as any).playbookRunner;
+      const stepsResult = runner.getSteps('fill_form');
+      if (stepsResult.resolved && stepsResult.steps.length > 0) {
+        for (const step of stepsResult.steps) {
+          if (step.type === 'fill' && typeof step.selector === 'string' && step.value !== undefined) {
+            response.addCode(`[Playbook] Fill: ${step.selector} with "${step.value}"`);
+            await tab.page.fill(step.selector, step.value);
+          }
+        }
+        response.setIncludeSnapshot();
+        return;
+      }
+    }
     for (const field of params.fields) {
       const { locator, resolved } = await tab.refLocator({ element: field.name, ref: field.ref });
       const locatorSource = `await page.${resolved}`;

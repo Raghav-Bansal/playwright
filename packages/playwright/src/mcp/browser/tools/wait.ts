@@ -33,6 +33,24 @@ const wait = defineTool({
   },
 
   handle: async (context, params, response) => {
+    // Playbook workflow-driven: Example for wait handler
+    if ((global as any).playbookRunner) {
+      const runner = (global as any).playbookRunner;
+      const stepsResult = runner.getSteps('wait');
+      if (stepsResult.resolved && stepsResult.steps.length > 0) {
+        const tab = context.currentTabOrDie();
+        for (const step of stepsResult.steps) {
+          if (step.type === 'wait') {
+            response.addCode(`[Playbook] Wait: ${step.params?.ms || 0} ms`);
+            await tab.page.waitForTimeout(Number(step.params?.ms) || 0);
+          }
+        }
+        response.addResult('Playbook wait steps complete');
+        response.setIncludeSnapshot();
+        return;
+      }
+    }
+
     if (!params.text && !params.textGone && !params.time)
       throw new Error('Either time, text or textGone must be provided');
 

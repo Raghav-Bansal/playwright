@@ -45,6 +45,24 @@ const screenshot = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
+    // Playbook workflow-driven: Example check for 'take_screenshot' workflow pattern and execute steps if defined.
+    if ((global as any).playbookRunner) {
+      const runner = (global as any).playbookRunner;
+      const stepsResult = runner.getSteps('take_screenshot');
+      if (stepsResult.resolved && stepsResult.steps.length > 0) {
+        for (const step of stepsResult.steps) {
+          if (step.type === 'wait') {
+            response.addCode(`[Playbook] Wait: ${step.params?.ms || 0} ms`);
+            await tab.page.waitForTimeout(Number(step.params?.ms) || 0);
+          }
+          // Extend for additional step types as the playbook evolves
+        }
+        response.setIncludeSnapshot();
+        // (Optionally) End and skip normal handler logic if playbook specifies all actions.
+        // return; (omit for now to allow both playbook and original logic)
+      }
+    }
+
     if (!!params.element !== !!params.ref)
       throw new Error('Both element and ref must be provided or neither.');
     if (params.fullPage && params.ref)

@@ -32,6 +32,21 @@ const pressKey = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
+    // Playbook workflow-driven: Example for keyboard_press
+    if ((global as any).playbookRunner) {
+      const runner = (global as any).playbookRunner;
+      const stepsResult = runner.getSteps('press_key');
+      if (stepsResult.resolved && stepsResult.steps.length > 0) {
+        for (const step of stepsResult.steps) {
+          if (step.type === 'press' && typeof step.value === 'string') {
+            response.addCode(`[Playbook] Keyboard press: ${step.value}`);
+            await tab.page.keyboard.press(step.value);
+          }
+        }
+        response.setIncludeSnapshot();
+        return;
+      }
+    }
     response.setIncludeSnapshot();
     response.addCode(`// Press ${params.key}`);
     response.addCode(`await page.keyboard.press('${params.key}');`);

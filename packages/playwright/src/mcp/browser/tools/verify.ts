@@ -32,6 +32,25 @@ const verifyElement = defineTabTool({
   },
 
   handle: async (tab, params, response) => {
+    // Playbook workflow-driven: Example for verify_element_visible
+    if ((global as any).playbookRunner) {
+      const runner = (global as any).playbookRunner;
+      const stepsResult = runner.getSteps('verify_element_visible');
+      if (stepsResult.resolved && stepsResult.steps.length > 0) {
+        for (const step of stepsResult.steps) {
+          if (step.type === 'assertion' && step.selector) {
+            response.addCode(`[Playbook] Assertion (element visible): ${step.selector}`);
+            const isVisible = await tab.page.isVisible(step.selector);
+            if (!isVisible) {
+              response.addError(`Element not visible by selector: ${step.selector}`);
+              return;
+            }
+          }
+        }
+        response.addResult('Playbook assertion(s) succeeded');
+        return;
+      }
+    }
     const locator = tab.page.getByRole(params.role as any, { name: params.accessibleName });
     if (await locator.count() === 0) {
       response.addError(`Element with role "${params.role}" and accessible name "${params.accessibleName}" not found`);
