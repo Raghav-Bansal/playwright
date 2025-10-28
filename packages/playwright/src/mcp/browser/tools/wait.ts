@@ -75,6 +75,42 @@ const wait = defineTool({
 
     response.addResult(`Waited for ${params.text || params.textGone || params.time}`);
     response.setIncludeSnapshot();
+
+    // --- Dual-mode persistent learning: fallback-triggered playbook persistence ---
+    if (global.playbookStore) {
+      try {
+        const store = global.playbookStore;
+        const patternName = 'wait';
+        const stepParams: Record<string, any> = {};
+        if (params.time) stepParams.ms = params.time * 1000;
+        if (params.text) stepParams.text = params.text;
+        if (params.textGone) stepParams.textGone = params.textGone;
+        const stepObj = { type: 'wait' as const, selector: '', params: stepParams };
+        const pattern = store.getPattern(patternName);
+        let shouldAdd = true;
+        if (pattern && Array.isArray(pattern.steps)) {
+          shouldAdd = !pattern.steps.some(
+            step => step.type === 'wait' && JSON.stringify(step.params) === JSON.stringify(stepParams)
+          );
+          if (shouldAdd) {
+            pattern.steps.push(stepObj);
+            store.addPattern(pattern);
+          }
+        } else {
+          store.addPattern({ name: patternName, steps: [stepObj] });
+        }
+        if (
+          global.playbookRecordSession &&
+          global.playbookRecordSession.active
+        ) {
+          global.playbookRecordSession.steps.push(stepObj);
+        }
+      } catch (e) {
+        if (console && console.warn) {
+          console.warn('[playbookStore persist: wait]', e);
+        }
+      }
+    }
   },
 });
 

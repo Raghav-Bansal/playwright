@@ -41,10 +41,16 @@ const navigate = defineTool({
         // Walk and execute each workflow step
         for (const step of stepsResult.steps) {
           switch (step.type) {
+            case 'navigate':
+              if (step.value) {
+                response.addCode(`[Playbook] Navigate: ${step.value}`);
+                await tab.page.goto(step.value);
+              }
+              break;
             case 'click':
               if (step.selector) {
                 response.addCode(`[Playbook] Click: ${step.selector}`);
-                await tab.page.click(step.selector); // direct page action; extend as needed for ref resolution
+                await tab.page.click(step.selector);
               }
               break;
             case 'fill':
@@ -60,7 +66,6 @@ const navigate = defineTool({
             case 'custom':
               response.addCode(`[Playbook] Custom step (not implemented)`);
               break;
-            // Add cases for other step types (navigation, select, etc.) as playbook evolves.
           }
         }
         response.setIncludeSnapshot();
@@ -74,6 +79,40 @@ const navigate = defineTool({
 
     response.setIncludeSnapshot();
     response.addCode(`await page.goto('${params.url}');`);
+
+    // --- Dual-mode persistent learning: fallback-triggered playbook persistence ---
+    if (global.playbookStore) {
+      try {
+        const store = global.playbookStore;
+        const patternName = 'navigate';
+        const stepObj = { type: 'navigate' as const, selector: '', value: params.url };
+        const pattern = store.getPattern(patternName);
+        let shouldAdd = true;
+        if (pattern && Array.isArray(pattern.steps)) {
+          shouldAdd = !pattern.steps.some(
+            step => step.type === 'navigate' && step.value === params.url
+          );
+          if (shouldAdd) {
+            pattern.steps.push(stepObj);
+            store.addPattern(pattern);
+          }
+        } else {
+          // New pattern, first learn
+          store.addPattern({ name: patternName, steps: [stepObj] });
+        }
+        // Session grouping: batch steps if recording enabled
+        if (
+          global.playbookRecordSession &&
+          global.playbookRecordSession.active
+        ) {
+          global.playbookRecordSession.steps.push(stepObj);
+        }
+      } catch (e) {
+        if (console && console.warn) {
+          console.warn('[playbookStore persist: navigation]', e);
+        }
+      }
+    }
   },
 });
 

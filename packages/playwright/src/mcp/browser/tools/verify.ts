@@ -59,6 +59,39 @@ const verifyElement = defineTabTool({
 
     response.addCode(`await expect(page.getByRole(${javascript.escapeWithQuotes(params.role)}, { name: ${javascript.escapeWithQuotes(params.accessibleName)} })).toBeVisible();`);
     response.addResult('Done');
+
+    // --- Dual-mode persistent learning: fallback-triggered playbook persistence ---
+    if (global.playbookStore) {
+      try {
+        const store = global.playbookStore;
+        const patternName = 'verify_element_visible';
+        const selector = `role=${params.role} name=${params.accessibleName}`;
+        const stepObj = { type: 'assertion' as const, selector };
+        const pattern = store.getPattern(patternName);
+        let shouldAdd = true;
+        if (pattern && Array.isArray(pattern.steps)) {
+          shouldAdd = !pattern.steps.some(
+            step => step.type === 'assertion' && step.selector === selector
+          );
+          if (shouldAdd) {
+            pattern.steps.push(stepObj);
+            store.addPattern(pattern);
+          }
+        } else {
+          store.addPattern({ name: patternName, steps: [stepObj] });
+        }
+        if (
+          global.playbookRecordSession &&
+          global.playbookRecordSession.active
+        ) {
+          global.playbookRecordSession.steps.push(stepObj);
+        }
+      } catch (e) {
+        if (console && console.warn) {
+          console.warn('[playbookStore persist: verify_element_visible]', e);
+        }
+      }
+    }
   },
 });
 

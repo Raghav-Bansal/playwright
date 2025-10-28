@@ -66,6 +66,38 @@ const fillForm = defineTabTool({
         await locator.selectOption({ label: field.value });
         response.addCode(`${locatorSource}.selectOption(${codegen.quote(field.value)});`);
       }
+
+      // --- Dual-mode persistent learning: fallback-triggered playbook persistence ---
+      if (global.playbookStore) {
+        try {
+          const store = global.playbookStore;
+          const patternName = 'fill_form';
+          const stepObj = { type: 'fill' as const, selector: resolved, value: field.value };
+          const pattern = store.getPattern(patternName);
+          let shouldAdd = true;
+          if (pattern && Array.isArray(pattern.steps)) {
+            shouldAdd = !pattern.steps.some(
+              step => step.type === 'fill' && step.selector === resolved && step.value === field.value
+            );
+            if (shouldAdd) {
+              pattern.steps.push(stepObj);
+              store.addPattern(pattern);
+            }
+          } else {
+            store.addPattern({ name: patternName, steps: [stepObj] });
+          }
+          if (
+            global.playbookRecordSession &&
+            global.playbookRecordSession.active
+          ) {
+            global.playbookRecordSession.steps.push(stepObj);
+          }
+        } catch (e) {
+          if (console && console.warn) {
+            console.warn('[playbookStore persist: fill_form]', e);
+          }
+        }
+      }
     }
   },
 });

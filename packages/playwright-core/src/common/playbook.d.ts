@@ -10,11 +10,15 @@ export interface PlaybookSelector {
 }
 
 export interface PlaybookStep {
-  type: 'click' | 'fill' | 'select' | 'wait' | 'custom';
-  selector: string; // semantic name (see PlaybookSelector)
+  // Add all handler step types here as union | 'type'
+  type: 'click' | 'fill' | 'select' | 'wait' | 'custom' | 'navigate' | 'screenshot' | 'press' | 'assertion';
+  selector: string; // semantic name (see PlaybookSelector), use '' if not available
   value?: any;
   params?: Record<string, any>;
   waitFor?: string;
+  // Mouse clicks: support coordinate recording
+  x?: number;
+  y?: number;
 }
 
 export interface PlaybookPattern {

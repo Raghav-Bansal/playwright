@@ -54,6 +54,38 @@ const pressKey = defineTabTool({
     await tab.waitForCompletion(async () => {
       await tab.page.keyboard.press(params.key);
     });
+
+    // --- Dual-mode persistent learning: fallback-triggered playbook persistence ---
+    if (global.playbookStore) {
+      try {
+        const store = global.playbookStore;
+        const patternName = 'press_key';
+        const stepObj = { type: 'press' as const, selector: '', value: params.key };
+        const pattern = store.getPattern(patternName);
+        let shouldAdd = true;
+        if (pattern && Array.isArray(pattern.steps)) {
+          shouldAdd = !pattern.steps.some(
+            step => step.type === 'press' && step.value === params.key
+          );
+          if (shouldAdd) {
+            pattern.steps.push(stepObj);
+            store.addPattern(pattern);
+          }
+        } else {
+          store.addPattern({ name: patternName, steps: [stepObj] });
+        }
+        if (
+          global.playbookRecordSession &&
+          global.playbookRecordSession.active
+        ) {
+          global.playbookRecordSession.steps.push(stepObj);
+        }
+      } catch (e) {
+        if (console && console.warn) {
+          console.warn('[playbookStore persist: press_key]', e);
+        }
+      }
+    }
   },
 });
 

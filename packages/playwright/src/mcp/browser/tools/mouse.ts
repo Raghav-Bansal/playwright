@@ -64,9 +64,23 @@ const mouseClick = defineTabTool({
       const stepsResult = runner.getSteps('mouse_click');
       if (stepsResult.resolved && stepsResult.steps.length > 0) {
         for (const step of stepsResult.steps) {
-          if (step.type === 'click' && typeof step.selector === 'string') {
-            response.addCode(`[Playbook] Click: ${step.selector}`);
-            await tab.page.click(step.selector);
+          if (step.type === 'click') {
+            // Replay selector-based click
+            if (step.selector && typeof step.selector === 'string') {
+              response.addCode(`[Playbook] Click: ${step.selector}`);
+              await tab.page.click(step.selector);
+            }
+            // Replay coordinate click
+            else if (
+              step.selector === '' &&
+              typeof step.x === 'number' &&
+              typeof step.y === 'number'
+            ) {
+              response.addCode(`[Playbook] Click at (${step.x}, ${step.y})`);
+              await tab.page.mouse.move(step.x, step.y);
+              await tab.page.mouse.down();
+              await tab.page.mouse.up();
+            }
           }
         }
         response.setIncludeSnapshot();
@@ -86,6 +100,38 @@ const mouseClick = defineTabTool({
       await tab.page.mouse.down();
       await tab.page.mouse.up();
     });
+
+    // --- Dual-mode persistent learning: fallback-triggered playbook persistence ---
+    if (global.playbookStore) {
+      try {
+        const store = global.playbookStore;
+        const patternName = 'mouse_click';
+        const stepObj = { type: 'click' as const, selector: '', x: params.x, y: params.y };
+        const pattern = store.getPattern(patternName);
+        let shouldAdd = true;
+        if (pattern && Array.isArray(pattern.steps)) {
+          shouldAdd = !pattern.steps.some(
+            step => step.type === 'click' && step.x === params.x && step.y === params.y
+          );
+          if (shouldAdd) {
+            pattern.steps.push(stepObj);
+            store.addPattern(pattern);
+          }
+        } else {
+          store.addPattern({ name: patternName, steps: [stepObj] });
+        }
+        if (
+          global.playbookRecordSession &&
+          global.playbookRecordSession.active
+        ) {
+          global.playbookRecordSession.steps.push(stepObj);
+        }
+      } catch (e) {
+        if (console && console.warn) {
+          console.warn('[playbookStore persist: mouse_click]', e);
+        }
+      }
+    }
   },
 });
 

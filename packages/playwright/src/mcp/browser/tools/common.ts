@@ -57,7 +57,57 @@ const resize = defineTabTool({
   },
 });
 
+const startRecording = defineTool({
+  capability: 'core',
+  schema: {
+    name: 'browser_start_recording',
+    title: 'Start Playbook Recording Session',
+    description: 'Start recording a new playbook session; all subsequent actions will be grouped for learning.',
+    inputSchema: z.object({
+      sessionName: z.string().optional().describe('Optional session name for grouping recorded steps (if omitted, uses timestamp)')
+    }),
+    type: 'action',
+  },
+  handle: async (context, params, response) => {
+    const sessionName = params.sessionName || `session-${new Date().toISOString()}`;
+    global.playbookRecordSession = { active: true, steps: [], sessionName };
+    response.addResult(`Persistent playbook recording started (sessionName = ${sessionName})`);
+  },
+});
+
+const stopRecording = defineTool({
+  capability: 'core',
+  schema: {
+    name: 'browser_stop_recording',
+    title: 'Stop Playbook Recording Session',
+    description: 'Stop recording and commit session as a pattern to playbook.yaml.',
+    inputSchema: z.object({}),
+    type: 'action',
+  },
+  handle: async (context, params, response) => {
+    if (
+      global.playbookRecordSession &&
+      global.playbookRecordSession.active &&
+      Array.isArray(global.playbookRecordSession.steps) &&
+      global.playbookStore
+    ) {
+      const sessionPattern = {
+        name: global.playbookRecordSession.sessionName || `session-${new Date().toISOString()}`,
+        steps: global.playbookRecordSession.steps,
+        meta: { recordedAt: new Date().toISOString() }
+      };
+      global.playbookStore.addPattern(sessionPattern);
+      global.playbookRecordSession.active = false;
+      response.addResult(`Playbook session saved as pattern '${sessionPattern.name}' (${sessionPattern.steps.length} steps)`);
+    } else {
+      response.addError('No active playbook recording session to stop.');
+    }
+  },
+});
+
 export default [
   close,
-  resize
+  resize,
+  startRecording,
+  stopRecording
 ];

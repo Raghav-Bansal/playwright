@@ -41,6 +41,10 @@ const playbookStore = new PlaybookStore();
 const playbookRunner = new PlaybookRunner(playbookStore);
 const playbookFallback = new PlaybookFallback(playbookStore);
 
+// Attach playbookStore and playbookRunner to global for MCP handler usage everywhere
+(global as any).playbookStore = playbookStore;
+(global as any).playbookRunner = playbookRunner;
+
 export function decorateCommand(command: Command, version: string) {
   command
       .option('--allowed-hosts <hosts...>', 'comma-separated list of hosts this server is allowed to serve from. Defaults to the host the server is bound to. Pass \'*\' to disable the host check.', commaSeparatedList)

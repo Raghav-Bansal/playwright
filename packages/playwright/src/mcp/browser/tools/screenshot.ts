@@ -100,6 +100,49 @@ const screenshot = defineTabTool({
       contentType: fileType === 'png' ? 'image/png' : 'image/jpeg',
       data: scaleImageToFitMessage(buffer, fileType)
     });
+
+    // --- Dual-mode persistent learning: fallback-triggered playbook persistence ---
+    if (global.playbookStore) {
+      try {
+        const store = global.playbookStore;
+        const patternName = 'take_screenshot';
+        const stepObj = {
+          type: 'screenshot' as const,
+          selector: '',
+          params: {
+            type: fileType,
+            filename: params.filename || '',
+            fullPage: !!params.fullPage,
+            element: params.element || '',
+            ref: params.ref || '',
+          },
+        };
+        const pattern = store.getPattern(patternName);
+        let shouldAdd = true;
+        if (pattern && Array.isArray(pattern.steps)) {
+          shouldAdd = !pattern.steps.some(
+            step =>
+              step.type === 'screenshot' && JSON.stringify(step.params) === JSON.stringify(stepObj.params)
+          );
+          if (shouldAdd) {
+            pattern.steps.push(stepObj);
+            store.addPattern(pattern);
+          }
+        } else {
+          store.addPattern({ name: patternName, steps: [stepObj] });
+        }
+        if (
+          global.playbookRecordSession &&
+          global.playbookRecordSession.active
+        ) {
+          global.playbookRecordSession.steps.push(stepObj);
+        }
+      } catch (e) {
+        if (console && console.warn) {
+          console.warn('[playbookStore persist: take_screenshot]', e);
+        }
+      }
+    }
   }
 });
 
