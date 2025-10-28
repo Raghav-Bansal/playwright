@@ -32,9 +32,9 @@ import { ExtensionContextFactory } from './extension/extensionContextFactory';
 import type { Command } from 'playwright-core/lib/utilsBundle';
 import type { MCPProvider } from './sdk/proxyBackend';
 
-import { PlaybookStore } from 'playwright-core/src/common/playbookStore';
-import { PlaybookRunner } from 'playwright-core/src/common/playbookRunner';
-import { PlaybookFallback } from 'playwright-core/src/common/playbookFallback';
+import { PlaybookStore } from 'playwright-core/lib/common/playbookStore';
+import { PlaybookRunner } from 'playwright-core/lib/common/playbookRunner';
+import { PlaybookFallback } from 'playwright-core/lib/common/playbookFallback';
 
 // The Playbook objects are initialized globally for MCC Agent/Runner use.
 const playbookStore = new PlaybookStore();

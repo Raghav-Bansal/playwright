@@ -33,7 +33,10 @@
     "./lib/server/registry/index": "./lib/server/registry/index.js",
     "./lib/utils": "./lib/utils.js",
     "./lib/utilsBundle": "./lib/utilsBundle.js",
-    "./lib/zipBundle": "./lib/zipBundle.js"
+    "./lib/zipBundle": "./lib/zipBundle.js",
+    "./lib/common/playbookStore": "./lib/common/playbookStore.js",
+    "./lib/common/playbookRunner": "./lib/common/playbookRunner.js",
+    "./lib/common/playbookFallback": "./lib/common/playbookFallback.js"
   },
   "bin": {
     "playwright-core": "cli.js"
